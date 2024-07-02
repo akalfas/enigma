@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>bench</title>
+</head>
+<body>
+<script type="module">
+    import init, { t_test } from "./pkg/hello.js";
+    await init();
+
+    function fill(count) {
+        let tbs = new Uint32Array(count);
+        for (let i = 0; i < tbs.length; i++) {
+            tbs[i] = Math.random() * 1000;
+        }
+        return tbs;
+    }
+
+    const now = performance.now();
+    for(let i = 0; i < 3500; i += 1) {
+        let left = fill(100);
+        let right = fill(100_000);
+        console.log(t_test(left, right));
+    }
+    console.log(performance.now() - now);
+</script>
+</body>
+</html>
