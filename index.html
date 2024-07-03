@@ -6,24 +6,34 @@
 </head>
 <body>
 <script type="module">
-    import init, { t_test } from "./pkg/hello.js";
+    import init, { t_test } from "./pkg/enigma.js";
     await init();
 
     function fill(count) {
-        let tbs = new Uint32Array(count);
+        let tbs = new Uint16Array(count);
         for (let i = 0; i < tbs.length; i++) {
             tbs[i] = Math.random() * 1000;
         }
         return tbs;
     }
 
-    const now = performance.now();
-    for(let i = 0; i < 3500; i += 1) {
-        let left = fill(100);
-        let right = fill(100_000);
-        console.log(t_test(left, right));
+    function benchmarked() {
+        console.log("Starting benchmark");
+        for (let i = 0; i < 3500; i += 1) {
+            let left = fill(100);
+            let right = fill(100_000);
+            t_test(left, right)
+        }
     }
-    console.log(performance.now() - now);
+
+    function measure(fn) {
+        const now = performance.now();
+        fn();
+        console.log(performance.now() - now);
+    }
+
+    measure(benchmarked);
+
 </script>
 </body>
 </html>
