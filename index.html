@@ -5,10 +5,7 @@
     <title>bench</title>
 </head>
 <body>
-<script type="module">
-    import init, { t_test } from "./pkg/hello.js";
-    await init();
-
+<script>
     function fill(count) {
         let tbs = new Uint32Array(count);
         for (let i = 0; i < tbs.length; i++) {
@@ -17,13 +14,94 @@
         return tbs;
     }
 
-    const now = performance.now();
-    for(let i = 0; i < 3500; i += 1) {
-        let left = fill(100);
-        let right = fill(100_000);
-        console.log(t_test(left, right));
+    let workers = new Map();
+
+    for (let i = 1; i < 9; i++) {
+        workers[`w${i}`] = new Worker("/worker.js", {type: "module", name: `w${i}`});
     }
-    console.log(performance.now() - now);
+
+    caches.open("enigma").then((cache) => {
+        cache.add("/pkg/enigma_bg.wasm");
+    });
+
+    async function tTest(worker) {
+        return new Promise(resolve => {
+            caches.match("/pkg/enigma_bg.wasm").then((response) => response.arrayBuffer())
+                .then((wasm) => {
+                    readyWorkers[worker].postMessage({wasm}, [wasm]);
+                    resolve();
+                });
+
+        });
+    }
+
+    let readyWorkers = new Map();
+
+    var proxy = new Proxy(readyWorkers, {
+        deleteProperty: function (target, property) {
+            delete target[property];
+            console.log("Deleted %s", property);
+            return true;
+        },
+        set: function (target, property, value, receiver) {
+            target[property] = value;
+            console.log("Set %s %s", property, value);
+            return true;
+        }
+    });
+
+    let workerPromises = Object.values(workers).map(worker => new Promise(resolve => {
+        worker.onmessage = (event) => {
+            const {type, recipient} = event.data;
+            if (type === "ready") {
+                proxy[recipient] = worker; // Assuming proxy setup is correct and intended for other uses
+                resolve(); // Resolve the promise when the worker is ready
+            }
+        };
+    }));
+
+
+    function fulfill() {
+        return () => new Promise(resolve => {
+            {
+                Object.values(workers).forEach((worker) => {
+                    worker.onmessage = (event) => {
+                        const {type, result} = event.data;
+                        if (type === "done") {
+                            console.log(result)
+                        }
+                    };
+                });
+                resolve();
+
+            }
+        });
+    }
+
+    function load() {
+        return () => new Promise(resolve => {
+            {
+                let todos = [];
+                for (let i = 0; i < 500; i++) {
+                    Object.keys(readyWorkers).forEach((worker) => {
+                        todos.push(tTest(worker));
+                    });
+                }
+                Promise.all(todos).then(() => resolve());
+
+            }
+        });
+    }
+
+    let now = performance.now();
+    Promise.all(workerPromises)
+        .then(fulfill())
+        .then(load())
+        .then(() => {
+            console.log(performance.now() - now);
+        });
+
+
 </script>
 </body>
 </html>

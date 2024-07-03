@@ -43,6 +43,6 @@ pub fn t_test(left: &[u32], right: &[u32]) -> f64 {
     let variance_right = variance(right, mean_right);
     let pooled_variance = (variance_left + variance_right) / 2;
     let t_value = (mean_left - mean_right) as f64 / (pooled_variance as f64 * (1 as f64 / left.len() as f64 + 1 as f64 / right.len() as f64)).sqrt();
-    let p = 1.0 - (0.5 + 0.5 * erf(t_value / 2.0f64.sqrt()));
+    let p = 1.0 - (0.5 + 0.5 * erf((t_value / 1.41) as f64));
     p
 }
