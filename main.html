@@ -1,0 +1,39 @@
+<html>
+<head></head>
+<body>
+<script type="module">
+    import {rpc} from './rpc.js';
+    import {pool} from './pool.js';
+
+    caches.open("enigma").then((cache) => {
+        cache.add("/pkg/enigma_bg.wasm");
+    });
+
+    let workerPool = new pool(() => {
+        console.log('Creating new worker');
+        let worker = new Worker('w.js', {type: 'module'})
+        let messageChannel = new MessageChannel();
+        caches.match("/pkg/enigma_bg.wasm")
+            .then((response) => response.arrayBuffer())
+            .then((wasm) => {
+                worker.postMessage({port: messageChannel.port1, wasm}, [messageChannel.port1, wasm]);
+            });
+        return {worker, messageChannel};
+    }, 12);
+
+
+
+    let server = new rpc(workerPool);
+
+    const now = performance.now();
+    let todos = [];
+    for (let i = 0; i < 10000; i++) {
+        todos.push(server.work(new ArrayBuffer(0)));
+    }
+    let data = await Promise.all(todos);
+    console.log(data);
+    console.log(performance.now() - now);
+
+</script>
+</body>
+</html>
