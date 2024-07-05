@@ -16,7 +16,7 @@
 
     let workers = new Map();
 
-    for (let i = 1; i < 9; i++) {
+    for (let i = 1; i < 13; i++) {
         workers[`w${i}`] = new Worker("/worker.js", {type: "module", name: `w${i}`});
     }
 
@@ -68,7 +68,7 @@
                     worker.onmessage = (event) => {
                         const {type, result} = event.data;
                         if (type === "done") {
-                            console.log(result)
+                            // console.log(result)
                         }
                     };
                 });
@@ -82,7 +82,7 @@
         return () => new Promise(resolve => {
             {
                 let todos = [];
-                for (let i = 0; i < 500; i++) {
+                for (let i = 0; i < 10000; i++) {
                     Object.keys(readyWorkers).forEach((worker) => {
                         todos.push(tTest(worker));
                     });
